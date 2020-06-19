@@ -35,3 +35,137 @@ const db = new Database({
     password: "root",
     database: "employee_db"
 });
+// Builds complete employee table
+async function showEmployeeSummary() {
+    console.log(' ');
+    await db.query('SELECT e.id, e.first_name AS First_Name, e.last_name AS Last_Name, title AS Title, salary AS Salary, name AS Department, CONCAT(m.first_name, " ", m.last_name) AS Manager FROM employee e LEFT JOIN employee m ON e.manager_id = m.id INNER JOIN role r ON e.role_id = r.id INNER JOIN department d ON r.department_id = d.id', (err, res) => {
+        if (err) throw err;
+        console.table(res);
+        runApp();
+    });
+};
+
+// Builds a table which shows existing roles and their departments
+async function showRoleSummary() {
+    console.log(' ');
+    await db.query('SELECT r.id, title, salary, name AS department FROM role r LEFT JOIN department d ON department_id = d.id', (err, res) => {
+        if (err) throw err;
+        console.table(res);
+        runApp();
+    })
+};
+
+// Builds a table which shows existing departments
+async function showDepartments() {
+    console.log(' ');
+    await db.query('SELECT id, name AS department FROM department', (err, res) => {
+        if (err) throw err;
+        console.table(res);
+        runApp();
+    })
+};
+
+// Adds a new employee after asking for name, role, and manager
+async function addEmployee() {
+    let positions = await db.query('SELECT id, title FROM role');
+    let managers = await db.query('SELECT id, CONCAT(first_name, " ", last_name) AS Manager FROM employee');
+    managers.unshift({ id: null, Manager: "None" });
+
+    inquirer.prompt([
+        {
+            name: "firstName",
+            type: "input",
+            message: "Enter employee's first name:",
+            validate: confirmStringInput
+        },
+        {
+            name: "lastName",
+            type: "input",
+            message: "Enter employee's last name:",
+            validate: confirmStringInput
+        },
+        {
+            name: "role",
+            type: "list",
+            message: "Choose employee role:",
+            choices: positions.map(obj => obj.title)
+        },
+        {
+            name: "manager",
+            type: "list",
+            message: "Choose the employee's manager:",
+            choices: managers.map(obj => obj.Manager)
+        }
+    ]).then(answers => {
+        let positionDetails = positions.find(obj => obj.title === answers.role);
+        let manager = managers.find(obj => obj.Manager === answers.manager);
+        db.query("INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?)", [[answers.firstName.trim(), answers.lastName.trim(), positionDetails.id, manager.id]]);
+        console.log("\x1b[32m", `${answers.firstName} was added to the employee database!`);
+        runApp();
+    });
+};
+
+// Removes an employee from the database
+async function removeEmployee() {
+    let employees = await db.query('SELECT id, CONCAT(first_name, " ", last_name) AS name FROM employee');
+    employees.push({ id: null, name: "Cancel" });
+
+    inquirer.prompt([
+        {
+            name: "employeeName",
+            type: "list",
+            message: "Remove which employee?",
+            choices: employees.map(obj => obj.name)
+        }
+    ]).then(response => {
+        if (response.employeeName != "Cancel") {
+            let unluckyEmployee = employees.find(obj => obj.name === response.employeeName);
+            db.query("DELETE FROM employee WHERE id=?", unluckyEmployee.id);
+            console.log("\x1b[32m", `${response.employeeName} was let go...`);
+        }
+        runApp();
+    })
+}; 
+
+
+// Change the employee's manager. Also prevents employee from being their own manager
+async function updateManager() {
+    let employees = await db.query('SELECT id, CONCAT(first_name, " ", last_name) AS name FROM employee');
+    employees.push({ id: null, name: "Cancel" });
+
+    inquirer.prompt([
+        {
+            name: "empName",
+            type: "list",
+            message: "For which employee?",
+            choices: employees.map(obj => obj.name)
+        }
+    ]).then(employeeInfo => {
+        if (employeeInfo.empName == "Cancel") {
+            runApp();
+            return;
+        }
+        let managers = employees.filter(currEmployee => currEmployee.name != employeeInfo.empName);
+        for (i in managers) {
+            if (managers[i].name === "Cancel") {
+                managers[i].name = "None";
+            }
+        };
+
+        inquirer.prompt([
+            {
+                name: "mgName",
+                type: "list",
+                message: "Change their manager to:",
+                choices: managers.map(obj => obj.name)
+            }
+        ]).then(managerInfo => {
+            let empID = employees.find(obj => obj.name === employeeInfo.empName).id
+            let mgID = managers.find(obj => obj.name === managerInfo.mgName).id
+            db.query("UPDATE employee SET manager_id=? WHERE id=?", [mgID, empID]);
+            console.log("\x1b[32m", `${employeeInfo.empName} now reports to ${managerInfo.mgName}`);
+            runApp();
+        })
+    })
+};
+
