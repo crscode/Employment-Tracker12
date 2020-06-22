@@ -1,5 +1,9 @@
 # Employment-Tracker12
 
+Video of working code
+
+https://drive.google.com/file/d/1RyLjaYxgS5YmS7AgvZ84Zjo4-fe19SyZ/view
+
 # Unit 12 MySQL Homework: Employee Tracker
 
 Developers are often tasked with creating interfaces that make it easy for non-developers to view and interact with information stored in databases. Often these interfaces are known as **C**ontent **M**anagement **S**ystems. In this homework assignment, your challenge is to architect and build a solution for managing a company's employees using node, inquirer, and MySQL.
@@ -138,4 +142,3 @@ You are required to submit the following:
 - - -
 © 2019 Trilogy Education Services, a 2U, Inc. brand. All Rights Reserved.
 
-https://drive.google.com/file/d/1RyLjaYxgS5YmS7AgvZ84Zjo4-fe19SyZ/view
